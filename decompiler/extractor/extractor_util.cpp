@@ -124,7 +124,7 @@ extractor_iso_database() {
               GAME_TERRITORY_SCEA,
               749,                     // number of files
               {1197801364027358161U},  // iso hash
-              "ntsc_v2",                    // decompiler config
+              "ntsc_v1",                    // decompiler config
               "jak3",
               {}}}}},
       };
