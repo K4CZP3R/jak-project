@@ -1,0 +1,69 @@
+name: Just Upload
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+
+  # Linux
+  build_linux_clang:
+    name: "🐧 Linux"
+    uses: ./.github/workflows/linux-build-clang.yaml
+    with:
+      cmakePreset: "Release-linux-clang-static"
+      cachePrefix: "static"
+      uploadArtifacts: true
+    secrets: inherit
+
+  # Upload the Artifacts
+  upload_artifacts:
+    if: github.repository == 'open-goal/jak-project'
+    needs:
+      - build_linux_clang
+    name: "Upload Artifacts"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.cut_release.outputs.new_tag }}
+
+      - name: Prepare Artifact Folder
+        run: mkdir -p ./ci-artifacts/final
+
+      - uses: actions/download-artifact@v4
+        name: Download all Artifacts
+        with:
+          path: ./ci-artifacts/
+
+      - name: Display structure of downloaded files
+        run: ls -Rl ./ci-artifacts/
+
+      - name: Prepare Linux Release Assets
+        run: |
+          mkdir -p ./ci-artifacts/linux
+          ./.github/scripts/releases/extract_build_unix.sh ./ci-artifacts/linux ./ci-artifacts/opengoal-linux-static ./
+          pushd ci-artifacts/linux
+          TAG_VAL=${{ needs.cut_release.outputs.new_tag }}
+          tar czf ../final/opengoal-linux-${TAG_VAL}.tar.gz .
+          popd
+          chmod +x ./ci-artifacts/opengoal-linux-static/lsp/lsp
+          cp ./ci-artifacts/opengoal-linux-static/lsp/lsp ./ci-artifacts/final/opengoal-lsp-linux-${TAG_VAL}.bin
+
+
+      - name: Upload Assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_VAL=${{ needs.cut_release.outputs.new_tag }}
+          gh release upload "${TAG_VAL}" ${{ github.WORKSPACE }}/ci-artifacts/final/* --repo open-goal/jak-project --clobber
+
+      - name: Publish Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_VAL=${{ needs.cut_release.outputs.new_tag }}
+          gh release edit ${TAG_VAL} --draft=false --repo open-goal/jak-project
