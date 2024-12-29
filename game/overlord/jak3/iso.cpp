@@ -184,14 +184,11 @@ void InitISOFS() {
 
   const ISOFileDef* vagdir_file = FindISOFile("VAGDIR.AYB");
   if (vagdir_file) {
-    // int load_status = LoadISOFileToIOP(vagdir_file, &g_VagDir, sizeof(g_VagDir));
-    // if (load_status) {
-      // ASSERT(g_VagDir.vag_magic_1 == 0x41574756);
-      // ASSERT(g_VagDir.vag_magic_2 == 0x52494444);
-    // } else {
+    int load_status = LoadISOFileToIOP(vagdir_file, &g_VagDir, sizeof(g_VagDir));
+    if(!load_status) {
       lg::warn("Failed to load vagdir file");
       g_VagDir.num_entries = 0;
-    // }
+    }
   } else {
     lg::warn("Failed to find vagdir file");
     g_VagDir.num_entries = 0;
